@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meta Ads — Painel de Indicações</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+    header { background: linear-gradient(135deg, #1a1d2e 0%, #16213e 100%); border-bottom: 1px solid #2d3748; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    header h1 span { color: #4299e1; }
+    .last-update { font-size: 12px; color: #718096; }
+
+    .summary-bar { display: flex; gap: 16px; padding: 20px 32px; background: #13151f; border-bottom: 1px solid #1e2535; overflow-x: auto; }
+    .stat-pill { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 12px 20px; white-space: nowrap; }
+    .stat-pill .label { font-size: 11px; color: #718096; text-transform: uppercase; letter-spacing: .5px; }
+    .stat-pill .value { font-size: 22px; font-weight: 700; color: #fff; margin-top: 2px; }
+    .stat-pill .value.green { color: #48bb78; }
+    .stat-pill .value.yellow { color: #f6ad55; }
+    .stat-pill .value.red { color: #fc8181; }
+
+    .filters { padding: 16px 32px; background: #13151f; border-bottom: 1px solid #1e2535; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #2d3748; background: transparent; color: #718096; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .15s; }
+    .filter-btn:hover, .filter-btn.active { background: #4299e1; border-color: #4299e1; color: #fff; }
+    .filter-label { font-size: 12px; color: #4a5568; }
+
+    main { padding: 28px 32px; display: flex; flex-direction: column; gap: 24px; }
+
+    .account-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 16px; overflow: hidden; }
+    .account-card.critical { border-color: #742a2a; }
+    .account-card.good { border-color: #1c4532; }
+    .account-card.dormant { opacity: .6; }
+
+    .account-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #2d3748; flex-wrap: wrap; gap: 12px; cursor: pointer; }
+    .account-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .account-meta { font-size: 12px; color: #718096; margin-top: 2px; }
+    .account-stats { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+    .acc-stat .label { font-size: 11px; color: #718096; text-transform: uppercase; }
+    .acc-stat .val { font-size: 15px; font-weight: 600; color: #e2e8f0; }
+    .collapse-btn { font-size: 18px; color: #4a5568; transition: transform .2s; }
+    .collapsed .collapse-btn { transform: rotate(-90deg); }
+
+    .card-body { transition: max-height .3s ease; }
+    .card-body.hidden { display: none; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .badge.ok    { background: #1c4532; color: #68d391; }
+    .badge.warn  { background: #7b341e; color: #fbd38d; }
+    .badge.crit  { background: #742a2a; color: #fc8181; }
+    .badge.info  { background: #2a4365; color: #90cdf4; }
+    .badge.gray  { background: #2d3748; color: #718096; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #4a5568; padding: 10px 16px; text-align: left; border-bottom: 1px solid #2d3748; background: #161927; }
+    td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid #1e2535; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1f2337; }
+
+    .camp-name { font-weight: 500; color: #e2e8f0; max-width: 220px; }
+    .camp-name small { display: block; font-size: 11px; color: #718096; font-weight: 400; margin-top: 2px; }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot-active  { background: #48bb78; box-shadow: 0 0 6px #48bb78; }
+    .dot-paused  { background: #718096; }
+
+    .freq-bar { display: flex; align-items: center; gap: 8px; }
+    .freq-track { flex: 1; height: 4px; background: #2d3748; border-radius: 2px; max-width: 60px; }
+    .freq-fill  { height: 100%; border-radius: 2px; }
+    .freq-ok   { background: #48bb78; }
+    .freq-warn { background: #f6ad55; }
+    .freq-crit { background: #fc8181; }
+
+    .recommendations { margin: 0 24px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .rec-title { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: .5px; padding: 16px 0 6px; }
+    .rec-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+    .rec-item.action  { background: #1a3a1a; border-left: 3px solid #48bb78; }
+    .rec-item.warning { background: #3a2a10; border-left: 3px solid #f6ad55; }
+    .rec-item.danger  { background: #3a1a1a; border-left: 3px solid #fc8181; }
+    .rec-item.info    { background: #1a2a3a; border-left: 3px solid #4299e1; }
+    .rec-icon { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+    .rec-text { color: #cbd5e0; }
+    .rec-text strong { color: #fff; }
+
+    .priority-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-left: 6px; }
+    .p-high   { background: #742a2a; color: #fc8181; }
+    .p-medium { background: #7b341e; color: #fbd38d; }
+    .p-low    { background: #1a365d; color: #90cdf4; }
+
+    .dormant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 20px 24px; }
+    .dormant-item { background: #161927; border: 1px solid #2d3748; border-radius: 10px; padding: 12px 16px; }
+    .dormant-item .name { font-size: 13px; font-weight: 600; color: #a0aec0; }
+    .dormant-item .detail { font-size: 11px; color: #4a5568; margin-top: 4px; }
+
+    .section-label { font-size: 13px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: .8px; padding: 8px 0; }
+
+    @media (max-width: 768px) {
+      header, main, .summary-bar, .filters { padding-left: 16px; padding-right: 16px; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Meta Ads <span>— Painel de Indicações</span></h1>
+    <div class="last-update">Dados: 2 mai – 31 mai 2026 &nbsp;·&nbsp; Gerado em 01/06/2026 &nbsp;·&nbsp; Rollyan Barbosa</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <span class="badge ok">● 9 Contas Ativas</span>
+    <span class="badge crit">🚨 3 Alertas Críticos</span>
+    <span class="badge warn">⚠ 4 Atenções</span>
+  </div>
+</header>
+
+<div class="summary-bar">
+  <div class="stat-pill"><div class="label">Gasto Total (30d)</div><div class="value">R$ 18.091</div></div>
+  <div class="stat-pill"><div class="label">Melhor CPA</div><div class="value green">R$ 7,12</div></div>
+  <div class="stat-pill"><div class="label">Amazon – Compras</div><div class="value green">203</div></div>
+  <div class="stat-pill"><div class="label">BL GO – Leads</div><div class="value green">447</div></div>
+  <div class="stat-pill"><div class="label">Custo/Lead BL GO</div><div class="value green">R$ 2,90</div></div>
+  <div class="stat-pill"><div class="label">Pior CPA ativo</div><div class="value red">R$ 142</div></div>
+  <div class="stat-pill"><div class="label">Ações recomendadas</div><div class="value yellow">14</div></div>
+</div>
+
+<div class="filters">
+  <span class="filter-label">Filtrar:</span>
+  <button class="filter-btn active" onclick="filterCards('all', this)">Todas</button>
+  <button class="filter-btn" onclick="filterCards('critical', this)">🚨 Críticas</button>
+  <button class="filter-btn" onclick="filterCards('good', this)">✅ Boas</button>
+  <button class="filter-btn" onclick="filterCards('warn', this)">⚠ Atenção</button>
+  <button class="filter-btn" onclick="filterCards('dormant', this)">💤 Inativas</button>
+</div>
+
+<main id="main-content">
+
+  <!-- ==================== AMAZON CLUB ==================== -->
+  <div class="account-card good" data-status="good">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🎵 Amazon Club — Conta 01</div>
+        <div class="account-meta">ID: 611677921601208 · Business: Amazon Club</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 1.564</div></div>
+        <div class="acc-stat"><div class="label">Compras ativas</div><div class="val" style="color:#48bb78">203</div></div>
+        <div class="acc-stat"><div class="label">CPA</div><div class="val" style="color:#48bb78">R$ 7,12</div></div>
+        <span class="badge ok">⭐ MELHOR CPA</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>CPA</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">PRÉ-VENDA e VENDA | Techno Lovers<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 1.444</td>
+              <td>203 compras</td>
+              <td style="color:#48bb78;font-weight:700">R$ 7,12</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-warn" style="width:68%"></div></div><span style="color:#f6ad55">6,8x</span></div></td>
+              <td><span class="badge ok">Escalar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Reconhecimento Marca<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 120</td>
+              <td>84k reach</td>
+              <td>—</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:11%"></div></div><span style="color:#48bb78">1,1x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">lastweek — Limite custo 14.05<small style="color:#f6ad55">Pausada</small></td>
+              <td><span class="status-dot dot-paused"></span>Pausada</td>
+              <td>R$ 679</td>
+              <td>67 compras</td>
+              <td style="color:#48bb78">R$ 10,14</td>
+              <td>—</td>
+              <td><span class="badge info">Referência ✓</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Vendas | Nox que Pacs | 16.05<small style="color:#f6ad55">Pausada</small></td>
+              <td><span class="status-dot dot-paused"></span>Pausada</td>
+              <td>R$ 966</td>
+              <td>48 compras</td>
+              <td style="color:#48bb78">R$ 20,13</td>
+              <td>—</td>
+              <td><span class="badge info">Referência</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — Amazon Club</div>
+        <div class="rec-item action">
+          <span class="rec-icon">🚀</span>
+          <div class="rec-text"><strong>Escalar campanha Techno Lovers imediatamente</strong><span class="priority-tag p-high">Alta</span><br>CPA R$7,12 é excepcionalmente baixo. Frequência 6,8x ainda tem espaço. Aumentar budget em 30–50%.</div>
+        </div>
+        <div class="rec-item warning">
+          <span class="rec-icon">⚠️</span>
+          <div class="rec-text"><strong>Frequência chegando em 7x — preparar novos públicos</strong><span class="priority-tag p-medium">Média</span><br>A campanha está em 6,8x de frequência. Ao cruzar 8x o CPA vai subir. Preparar lookalike ou ampliar interesse.</div>
+        </div>
+        <div class="rec-item info">
+          <span class="rec-icon">💡</span>
+          <div class="rec-text"><strong>Reativar "lastweek" com limite de custo para próximos eventos</strong><br>CPA R$10,14 com limite de custo é um modelo a replicar. Ativar quando abrir próxima venda.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== EXPO PIMENTA ==================== -->
+  <div class="account-card critical" data-status="critical">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🌶️ Expo Pimenta — Conta 01</div>
+        <div class="account-meta">ID: 851221494415577 · Business: Expô Pimenta</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 2.823</div></div>
+        <div class="acc-stat"><div class="label">Compras ativas</div><div class="val" style="color:#fc8181">14</div></div>
+        <div class="acc-stat"><div class="label">CPA médio</div><div class="val" style="color:#fc8181">R$ 139</div></div>
+        <span class="badge crit">🚨 CPA CRÍTICO</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>CPA</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">Conversão M/Q<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 854</td>
+              <td>6 compras</td>
+              <td style="color:#fc8181;font-weight:700">R$ 142</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-crit" style="width:76%"></div></div><span style="color:#fc8181">7,6x</span></div></td>
+              <td><span class="badge crit">Pausar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Conversão F<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 1.094</td>
+              <td>8 compras</td>
+              <td style="color:#fc8181;font-weight:700">R$ 137</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-crit" style="width:70%"></div></div><span style="color:#fc8181">7,0x</span></div></td>
+              <td><span class="badge crit">Pausar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Engajamento<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 440</td>
+              <td>69k engaj.</td>
+              <td style="color:#48bb78">R$ 0,006/engaj.</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:26%"></div></div><span style="color:#48bb78">2,6x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Alcance<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 436</td>
+              <td>119k reach</td>
+              <td>—</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:27%"></div></div><span style="color:#48bb78">2,7x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — Expo Pimenta</div>
+        <div class="rec-item danger">
+          <span class="rec-icon">🚨</span>
+          <div class="rec-text"><strong>PAUSAR as 2 campanhas de Conversão imediatamente</strong><span class="priority-tag p-high">Crítico</span><br>R$ 1.948 gastos para apenas 14 compras. CPA R$137–142 é inviável para evento. Stoppar sangria.</div>
+        </div>
+        <div class="rec-item danger">
+          <span class="rec-icon">⛔</span>
+          <div class="rec-text"><strong>Problema de oferta ou landing page, não de público</strong><span class="priority-tag p-high">Crítico</span><br>Frequência 7x, CTR 1,3–1,4% — as pessoas estão clicando mas não comprando. Verificar checkout/preço/landing page urgente.</div>
+        </div>
+        <div class="rec-item warning">
+          <span class="rec-icon">⚠️</span>
+          <div class="rec-text"><strong>127–227 Add to Cart mas só 6–8 compras</strong><span class="priority-tag p-high">Alta</span><br>Taxa de conversão cart → compra < 5%. Problema grave no checkout. Verificar se o sistema de pagamento está funcionando.</div>
+        </div>
+        <div class="rec-item action">
+          <span class="rec-icon">✅</span>
+          <div class="rec-text"><strong>Engajamento e Alcance estão ótimos — manter</strong><br>Custo/engajamento R$0,006 e alcance a R$3,65/mil são excelentes para evento. Continuam construindo audiência.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BL BH ==================== -->
+  <div class="account-card" data-status="warn">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🎉 Baile Lotadão BH — Conta 01</div>
+        <div class="account-meta">ID: 701937609298889 · Business: BAILE LOTADÃO</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 8.981</div></div>
+        <div class="acc-stat"><div class="label">Compras</div><div class="val" style="color:#48bb78">228</div></div>
+        <div class="acc-stat"><div class="label">CPA Médio</div><div class="val" style="color:#f6ad55">R$ 27,90</div></div>
+        <span class="badge warn">⚠ Saturação pública</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>CPA</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">1 [ABO] Vendas Abertas<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 3.454</td>
+              <td>123 compras</td>
+              <td style="color:#48bb78">R$ 28,08</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-crit" style="width:100%"></div></div><span style="color:#fc8181;font-weight:700">13,3x</span></div></td>
+              <td><span class="badge crit">Renovar público</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">2 [CBO] Vendas Abertas<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 1.399</td>
+              <td>51 compras</td>
+              <td style="color:#48bb78">R$ 27,44</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-crit" style="width:93%"></div></div><span style="color:#fc8181;font-weight:700">9,3x</span></div></td>
+              <td><span class="badge warn">Renovar público</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">3 [CBO] Público Frio<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 1.519</td>
+              <td>50 compras</td>
+              <td style="color:#48bb78">R$ 30,37</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-warn" style="width:54%"></div></div><span style="color:#f6ad55">5,4x</span></div></td>
+              <td><span class="badge ok">Monitorar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[ALCANCE] Frequência 10x<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 1.186</td>
+              <td>193k reach</td>
+              <td>—</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-warn" style="width:38%"></div></div><span style="color:#f6ad55">3,8x</span></div></td>
+              <td><span class="badge ok">Funcionando</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Melhores Criativos [Mai26]<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 194</td>
+              <td>4 compras</td>
+              <td style="color:#fc8181">R$ 48,43</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-warn" style="width:34%"></div></div><span style="color:#f6ad55">3,4x</span></div></td>
+              <td><span class="badge crit">Pausar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[LEADS] Aniversário BH<small>OUTCOME_LEADS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 169</td>
+              <td>14 leads</td>
+              <td style="color:#48bb78">R$ 12,07</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:18%"></div></div><span style="color:#48bb78">1,8x</span></div></td>
+              <td><span class="badge ok">Escalar</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — BL BH</div>
+        <div class="rec-item danger">
+          <span class="rec-icon">🚨</span>
+          <div class="rec-text"><strong>Campanha 1 [ABO] com frequência 13,3x — saturação total</strong><span class="priority-tag p-high">Alta</span><br>Público exaurido. CPA vai subir nas próximas semanas. Renovar lookalike ou expandir raio geográfico.</div>
+        </div>
+        <div class="rec-item danger">
+          <span class="rec-icon">⛔</span>
+          <div class="rec-text"><strong>Pausar "Melhores Criativos [Mai26]"</strong><span class="priority-tag p-high">Alta</span><br>CPA R$48,43 vs média R$27,90 — 73% pior. Realocar esse budget para campanha de Leads.</div>
+        </div>
+        <div class="rec-item action">
+          <span class="rec-icon">📈</span>
+          <div class="rec-text"><strong>Escalar Leads Aniversário BH</strong><span class="priority-tag p-low">Oportunidade</span><br>R$12,07/lead com frequência 1,8x. Espaço enorme. Aumentar budget 50%.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BL GO ==================== -->
+  <div class="account-card good" data-status="good">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🎉 Baile Lotadão GO — Conta 02</div>
+        <div class="account-meta">ID: 1893465581336598 · Business: BAILE LOTADÃO</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 1.407</div></div>
+        <div class="acc-stat"><div class="label">Leads</div><div class="val" style="color:#48bb78">447</div></div>
+        <div class="acc-stat"><div class="label">Custo/Lead</div><div class="val" style="color:#48bb78">R$ 2,90</div></div>
+        <span class="badge ok">✅ Excelente</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>Custo/Resultado</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">[BL GO] LEADS<small>OUTCOME_LEADS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 1.296</td>
+              <td>447 leads</td>
+              <td style="color:#48bb78;font-weight:700">R$ 2,90/lead</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:29%"></div></div><span style="color:#48bb78">2,9x</span></div></td>
+              <td><span class="badge ok">Escalar agora</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[BL GO] Engajamento<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 57</td>
+              <td>316 engaj.</td>
+              <td style="color:#48bb78">R$ 0,18/engaj.</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:15%"></div></div><span style="color:#48bb78">1,5x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[BL GO] Alcance<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 54</td>
+              <td>17k reach</td>
+              <td>R$ 3,13/1k</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:17%"></div></div><span style="color:#48bb78">1,7x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — BL GO</div>
+        <div class="rec-item action">
+          <span class="rec-icon">🚀</span>
+          <div class="rec-text"><strong>Dobrar orçamento da campanha de Leads</strong><span class="priority-tag p-high">Alta</span><br>R$2,90/lead é um dos melhores CPLs da carteira. Frequência 2,9x — muito espaço para crescer sem queimar público.</div>
+        </div>
+        <div class="rec-item info">
+          <span class="rec-icon">💡</span>
+          <div class="rec-text"><strong>Estrutura ideal — não alterar</strong><br>3 campanhas, todas eficientes, frequências baixas. Conta modelo a replicar para outros eventos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ANL ==================== -->
+  <div class="account-card critical" data-status="critical">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🎯 All Night Lou (ANL) — SP</div>
+        <div class="account-meta">ID: 786828813769103 · Business: ALL NIGHT LOU</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 997</div></div>
+        <div class="acc-stat"><div class="label">Compras</div><div class="val" style="color:#fc8181">8</div></div>
+        <div class="acc-stat"><div class="label">CPA médio</div><div class="val" style="color:#fc8181">R$ 120</div></div>
+        <span class="badge crit">🚨 Ação imediata</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>CPA</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">Conversão Público Quente SP<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 632</td>
+              <td>6 compras</td>
+              <td style="color:#fc8181;font-weight:700">R$ 105</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:27%"></div></div><span style="color:#48bb78">2,7x</span></div></td>
+              <td><span class="badge crit">Revisar criativo</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Conversão Público Frio SP<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 296</td>
+              <td>2 compras</td>
+              <td style="color:#fc8181;font-weight:700">R$ 148</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:17%"></div></div><span style="color:#48bb78">1,7x</span></div></td>
+              <td><span class="badge crit">Pausar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">Engajamento Público Frio SP<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 69</td>
+              <td>6.448 engaj.</td>
+              <td style="color:#48bb78">R$ 0,01/engaj.</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:13%"></div></div><span style="color:#48bb78">1,3x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — ANL SP</div>
+        <div class="rec-item danger">
+          <span class="rec-icon">⛔</span>
+          <div class="rec-text"><strong>Pausar Conversão Público Frio SP</strong><span class="priority-tag p-high">Crítico</span><br>R$148/compra com apenas 2 conversões em R$296. CPA inviável. Desligar agora.</div>
+        </div>
+        <div class="rec-item warning">
+          <span class="rec-icon">⚠️</span>
+          <div class="rec-text"><strong>Trocar criativos da Conversão Público Quente</strong><span class="priority-tag p-high">Alta</span><br>Frequência 2,7x — não é saturação. O problema é o criativo ou a oferta. Usar criativos que performaram em Curitiba (CPA R$19–21).</div>
+        </div>
+        <div class="rec-item info">
+          <span class="rec-icon">💡</span>
+          <div class="rec-text"><strong>Referência: campanhas de Curitiba convertiam a R$19–21</strong><br>Mesmos públicos e estrutura, CPAs 5–7x melhores. A diferença está no criativo/oferta específico de SP.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== QUI DELICIA BISTRO ==================== -->
+  <div class="account-card" data-status="warn">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🍽️ Qui Delicia Bistro</div>
+        <div class="account-meta">ID: 2056916071743975 · Business: Qui Delicia Bistro 2</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 1.201</div></div>
+        <div class="acc-stat"><div class="label">Foco</div><div class="val">Alcance/Engaj.</div></div>
+        <span class="badge warn">⚠ Alcance caro</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>Custo/Resultado</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">[REMARKETING] Visitas no Perfil<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 368</td>
+              <td>31k reach</td>
+              <td style="color:#fc8181">R$ 11,67/1k reach</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-crit" style="width:67%"></div></div><span style="color:#fc8181">6,7x</span></div></td>
+              <td><span class="badge warn">Revisar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[TRÁFEGO] Visitas Instagram<small>LINK_CLICKS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>488 seguidores</td>
+              <td style="color:#48bb78">R$ 0,33/seguidor</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:19%"></div></div><span style="color:#48bb78">1,9x</span></div></td>
+              <td><span class="badge ok">Bom</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[ENGAJAMENTO] Pratos<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>959 interações</td>
+              <td style="color:#48bb78">R$ 0,17/interação</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:27%"></div></div><span style="color:#f6ad55">2,7x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[ALCANCE] Pratos<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>42k reach</td>
+              <td style="color:#48bb78">R$ 3,82/1k reach</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:25%"></div></div><span style="color:#48bb78">2,5x</span></div></td>
+              <td><span class="badge ok">OK</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[VIDEOVIEW] MAIO<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>7.991 visualiz.</td>
+              <td style="color:#48bb78">R$ 0,02/view</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:17%"></div></div><span style="color:#48bb78">1,7x</span></div></td>
+              <td><span class="badge ok">Bom</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — Qui Delicia Bistro</div>
+        <div class="rec-item warning">
+          <span class="rec-icon">⚠️</span>
+          <div class="rec-text"><strong>[REMARKETING] pagando R$11,67/1k reach — 3x mais caro que [ALCANCE]</strong><span class="priority-tag p-medium">Média</span><br>O Alcance custa R$3,82/1k. Remarketing com frequência 6,7x e público pequeno está ineficiente. Reduzir budget ou pausar.</div>
+        </div>
+        <div class="rec-item info">
+          <span class="rec-icon">💡</span>
+          <div class="rec-text"><strong>Conta sem campanha de conversão/leads</strong><br>Todo o investimento está em awareness e engajamento. Considerar adicionar campanha de WhatsApp/mensagens para captar pedidos diretos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== QUI DELICIA (CLIQUEI ACHEI) ==================== -->
+  <div class="account-card good" data-status="good">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🍽️ Qui Delicia — Cliquei Achei</div>
+        <div class="account-meta">ID: 2065804890623489 · Business: Qui Delicia Bistro 2</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 1.075</div></div>
+        <div class="acc-stat"><div class="label">Conv. WhatsApp</div><div class="val" style="color:#48bb78">62</div></div>
+        <div class="acc-stat"><div class="label">Custo/Conversa</div><div class="val" style="color:#48bb78">R$ 6,44</div></div>
+        <span class="badge ok">✅ Bom desempenho</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>Custo/Resultado</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">[CHAMADOS] WHATSAPP<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 399</td>
+              <td>62 conversas</td>
+              <td style="color:#48bb78;font-weight:700">R$ 6,44/conversa</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-warn" style="width:48%"></div></div><span style="color:#f6ad55">4,8x</span></div></td>
+              <td><span class="badge ok">Manter</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[ALCANCE] Cliquei Achei<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>40k reach</td>
+              <td>R$ 4,04/1k</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:25%"></div></div><span style="color:#48bb78">2,5x</span></div></td>
+              <td><span class="badge ok">OK</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[ENGAJAMENTO] Cliquei Achei<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>15k engaj.</td>
+              <td style="color:#48bb78">R$ 0,01/engaj.</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:15%"></div></div><span style="color:#48bb78">1,5x</span></div></td>
+              <td><span class="badge ok">Bom</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[VIDEO VIEW] Cliquei Achei<small>OUTCOME_AWARENESS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>3.904 views</td>
+              <td style="color:#48bb78">R$ 0,04/view</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:17%"></div></div><span style="color:#48bb78">1,7x</span></div></td>
+              <td><span class="badge ok">Bom</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[SEGUIDORES] Instagram<small>LINK_CLICKS</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 160</td>
+              <td>475 seguidores</td>
+              <td style="color:#48bb78">R$ 0,34/seguidor</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:17%"></div></div><span style="color:#48bb78">1,7x</span></div></td>
+              <td><span class="badge ok">Bom</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — Qui Delicia Cliquei Achei</div>
+        <div class="rec-item action">
+          <span class="rec-icon">✅</span>
+          <div class="rec-text"><strong>Conta com estrutura equilibrada e bom desempenho</strong><br>R$6,44/conversa no WhatsApp é saudável para restaurante. Campanha WhatsApp começando frequência alta (4,8x) — monitorar.</div>
+        </div>
+        <div class="rec-item warning">
+          <span class="rec-icon">⚠️</span>
+          <div class="rec-text"><strong>WhatsApp com frequência 4,8x — renovar criativo em breve</strong><span class="priority-tag p-low">Baixa</span><br>Ainda não é crítico, mas ao cruzar 6x o custo/conversa vai subir. Preparar novo criativo preventivamente.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ORAL POCOS ==================== -->
+  <div class="account-card" data-status="warn">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🦷 Oral Poços — Nobre Odontologia</div>
+        <div class="account-meta">ID: 948309103297988 · Business: Oral Poços</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto</div><div class="val">R$ 60</div></div>
+        <div class="acc-stat"><div class="label">Conversas</div><div class="val" style="color:#f6ad55">3</div></div>
+        <div class="acc-stat"><div class="label">Custo/Conversa</div><div class="val" style="color:#f6ad55">R$ 14,49</div></div>
+        <span class="badge warn">⚠ Volume baixo</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>Custo/Resultado</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">[Chamados] Nobre Odontologia<small>OUTCOME_SALES · WhatsApp</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 43</td>
+              <td>3 conversas</td>
+              <td style="color:#f6ad55">R$ 14,49/conversa</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:16%"></div></div><span style="color:#48bb78">1,6x</span></div></td>
+              <td><span class="badge warn">Escalar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[Chamados] Nobre Odontologia — Cópia<small>OUTCOME_SALES</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 16</td>
+              <td>0 conversas</td>
+              <td style="color:#fc8181">—</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:11%"></div></div><span style="color:#48bb78">1,1x</span></div></td>
+              <td><span class="badge crit">Pausar cópia</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — Oral Poços</div>
+        <div class="rec-item danger">
+          <span class="rec-icon">⛔</span>
+          <div class="rec-text"><strong>Pausar campanha "Cópia" — R$16 sem nenhuma conversa</strong><span class="priority-tag p-high">Alta</span><br>Duplicata sem resultado. Concentrar budget na campanha principal.</div>
+        </div>
+        <div class="rec-item action">
+          <span class="rec-icon">📈</span>
+          <div class="rec-text"><strong>Aumentar budget da campanha principal</strong><span class="priority-tag p-medium">Média</span><br>R$14,49/conversa é razoável para odontologia. Frequência 1,6x — muito espaço. Budget muito baixo (R$43 no mês). Dobrar para ver impacto.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== AURA MOVEIS ==================== -->
+  <div class="account-card" data-status="warn">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">🛋️ Aura Móveis Planejados</div>
+        <div class="account-meta">ID: 3040978782761947 · Business: Aura ambientes Planejados</div>
+      </div>
+      <div class="account-stats">
+        <div class="acc-stat"><div class="label">Gasto ativo</div><div class="val">R$ 115</div></div>
+        <div class="acc-stat"><div class="label">Conversas</div><div class="val" style="color:#f6ad55">8</div></div>
+        <div class="acc-stat"><div class="label">Custo/Conversa</div><div class="val" style="color:#f6ad55">R$ 14,35</div></div>
+        <span class="badge info">ℹ Novo</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Resultado</th><th>Custo/Resultado</th><th>Frequência</th><th>Indicação</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="camp-name">[Mensagens] WhatsApp Abril<small>OUTCOME_ENGAGEMENT</small></td>
+              <td><span class="status-dot dot-active"></span>Ativa</td>
+              <td>R$ 115</td>
+              <td>8 conversas</td>
+              <td style="color:#f6ad55">R$ 14,35/conversa</td>
+              <td><div class="freq-bar"><div class="freq-track"><div class="freq-fill freq-ok" style="width:23%"></div></div><span style="color:#48bb78">2,3x</span></div></td>
+              <td><span class="badge ok">Monitorar</span></td>
+            </tr>
+            <tr>
+              <td class="camp-name">[Aura] Site — Leads<small style="color:#f6ad55">Pausada recentemente</small></td>
+              <td><span class="status-dot dot-paused"></span>Pausada</td>
+              <td>R$ 86</td>
+              <td>8 leads</td>
+              <td style="color:#f6ad55">R$ — (sem pixel)</td>
+              <td>—</td>
+              <td><span class="badge info">Reativar?</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="recommendations">
+        <div class="rec-title">Recomendações — Aura Móveis</div>
+        <div class="rec-item info">
+          <span class="rec-icon">💡</span>
+          <div class="rec-text"><strong>Conta com volume muito baixo — aumentar investimento</strong><br>R$115 no mês é insuficiente para coleta de dados significativa. Aumentar para R$300–500/mês para o algoritmo otimizar.</div>
+        </div>
+        <div class="rec-item action">
+          <span class="rec-icon">📈</span>
+          <div class="rec-text"><strong>Reativar campanha de leads do Site</strong><span class="priority-tag p-low">Oportunidade</span><br>Estava coletando leads — complementa o WhatsApp e amplia volume de contatos qualificados.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CONTAS INATIVAS ==================== -->
+  <div class="account-card dormant" data-status="dormant">
+    <div class="account-header" onclick="toggleCard(this)">
+      <div>
+        <div class="account-name">💤 Contas sem gasto nos últimos 30 dias</div>
+        <div class="account-meta">Campanhas ativas configuradas mas sem veiculação</div>
+      </div>
+      <div class="account-stats">
+        <span class="badge gray">16 contas</span>
+        <span class="collapse-btn">▾</span>
+      </div>
+    </div>
+    <div class="card-body hidden">
+      <div class="dormant-grid">
+        <div class="dormant-item"><div class="name">Blackartel Records</div><div class="detail">ID: 694164348157366 · Todas campanhas pausadas</div></div>
+        <div class="dormant-item"><div class="name">Breaking Beatzz</div><div class="detail">ID: 369727307923417 · NEXT Management</div></div>
+        <div class="dormant-item"><div class="name">Union Anuncios</div><div class="detail">ID: 595158901800602 · Everton Reis</div></div>
+        <div class="dormant-item"><div class="name">01 - VictorLou</div><div class="detail">ID: 308829074639985 · NEXT Management</div></div>
+        <div class="dormant-item"><div class="name">CA Valky Music</div><div class="detail">ID: 1032258837417073 · valkymusic</div></div>
+        <div class="dormant-item"><div class="name">Conta 02 Blackartel</div><div class="detail">ID: 1060450208173693</div></div>
+        <div class="dormant-item"><div class="name">01 - DifRecords</div><div class="detail">ID: 297070693328056</div></div>
+        <div class="dormant-item"><div class="name">CONTA PARK ART</div><div class="detail">ID: 359161189927963</div></div>
+        <div class="dormant-item"><div class="name">Hope in Concert</div><div class="detail">ID: 1137780913911330 · NEXT Management</div></div>
+        <div class="dormant-item"><div class="name">CA Breno</div><div class="detail">ID: 1694285244759903 · Dr Breno</div></div>
+        <div class="dormant-item"><div class="name">Eventos Gate</div><div class="detail">ID: 491288710032821 · Grupo Caos</div></div>
+        <div class="dormant-item"><div class="name">Victor ALC</div><div class="detail">ID: 1363979274758215 · NEXT Management</div></div>
+        <div class="dormant-item"><div class="name">CA Arunguaia</div><div class="detail">ID: 2927898580718182</div></div>
+        <div class="dormant-item"><div class="name">Cave 271</div><div class="detail">ID: 1852438588976271</div></div>
+        <div class="dormant-item"><div class="name">Brisas Club</div><div class="detail">ID: 1908874989725668</div></div>
+        <div class="dormant-item"><div class="name">Fuscarini</div><div class="detail">ID: 842911118529957</div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;border-top:1px solid #1e2535;margin-top:8px;">
+  Meta Ads Dashboard · Rollyan Barbosa · Dados via Meta Ads API · 01/06/2026<br>
+  <span style="color:#2d3748">Atualização automática: todo dia às 08h00</span>
+</div>
+
+<script>
+function toggleCard(header) {
+  const card = header.parentElement;
+  const body = card.querySelector('.card-body');
+  card.classList.toggle('collapsed');
+  body.classList.toggle('hidden');
+}
+
+function filterCards(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.account-card').forEach(card => {
+    if (filter === 'all') {
+      card.style.display = '';
+    } else if (filter === 'critical') {
+      card.style.display = card.dataset.status === 'critical' ? '' : 'none';
+    } else if (filter === 'good') {
+      card.style.display = card.dataset.status === 'good' ? '' : 'none';
+    } else if (filter === 'warn') {
+      card.style.display = card.dataset.status === 'warn' ? '' : 'none';
+    } else if (filter === 'dormant') {
+      card.style.display = card.dataset.status === 'dormant' ? '' : 'none';
+    }
+  });
+}
+</script>
+</body>
+</html>
